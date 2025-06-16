@@ -49,9 +49,9 @@
         <p><strong>NIC Front:</strong></p>
         <img :src="images.front" alt="NIC Front Image" class="preview-image" />
       </div>
-      <div v-if="images.rear">
+      <div v-if="images.back">
         <p><strong>NIC Rear:</strong></p>
-        <img :src="images.rear" alt="NIC Rear Image" class="preview-image" />
+        <img :src="images.back" alt="NIC Rear Image" class="preview-image" />
       </div>
       <div v-if="images.selfie">
         <p><strong>Selfie:</strong></p>
@@ -81,7 +81,7 @@ interface User {
 
 interface Images {
   front: string | null;
-  rear: string | null;
+  back: string | null;
   selfie: string | null;
 }
 
@@ -100,7 +100,7 @@ export default defineComponent({
       } as User,
       images: {
         front: null,
-        rear: null,
+        back: null,
         selfie: null,
       } as Images,
     };

@@ -1,34 +1,54 @@
 <template>
   <div class="nic-page">
     <div class="form-section">
-      <h2 class="form-title">Upload Your NIC & Selfie</h2>
+      <h2>Upload Your NIC & Selfie</h2>
+
+      <div class="reference-input">
+        <label for="referenceNumber">NIC Number:</label>
+        <input
+          id="referenceNumber"
+          v-model="referenceNumber"
+          type="text"
+          placeholder="Enter your NIC number"
+          required
+        >
+      </div>
 
       <div class="upload-grid">
-        <div v-for="(label, key) in imageLabels" :key="key" class="upload-box">
-          <div class="text-above-image">Upload {{ label }}</div>
+        <div class="upload-box">
+          <h3>NIC Front</h3>
           <div class="image-preview">
-            <img v-if="imagesBase64[key]" :src="imagesBase64[key]" alt="Preview" />
-            <img
-              v-else
-              src="@/assets/success.png"
-              alt="placeholder icon"
-              class="placeholder-icon"
-            />
-          </div>
+            <img v-if="preview.front" :src="preview.front" alt="NIC Front Preview">
 
-          <label class="upload-label">
-            <input type="file" accept="image/*" @change="handleFileChange(key, $event)" />
-            <div class="round-button">
-              <i class="fas fa-camera"></i>
-              <span>Upload {{ label }}</span>
-            </div>
-          </label>
+            <div v-else class="placeholder">No image selected</div>
+          </div>
+          <input type="file" @change="handleFileChange('front', $event)" accept="image/">
+        </div>
+
+        <div class="upload-box">
+          <h3>NIC Back</h3>
+          <div class="image-preview">
+            <img v-if="preview.back" :src="preview.back" alt="NIC Back Preview">
+            <div v-else class="placeholder">No image selected</div>
+          </div>
+          <input type="file" @change="handleFileChange('back', $event)" accept="image/*">
+        </div>
+
+        <div class="upload-box">
+          <h3>Selfie</h3>
+          <div class="image-preview">
+            <img v-if="preview.selfie" :src="preview.selfie" alt="Selfie Preview">
+            <div v-else class="placeholder">No image selected</div>
+          </div>
+          <input type="file" @change="handleFileChange('selfie', $event)" accept="image/*">
         </div>
       </div>
 
-      <div class="button-group">
-        <button type="button" class="back-btn" @click="$router.back()">Back</button>
-        <button class="submit-button" @click="submitImages">Submit</button>
+      <div class="buttons">
+        <button @click="$router.back()" :disabled="loading">Back</button>
+        <button @click="submitImages" :disabled="loading || !referenceNumber">
+          {{ loading ? 'Uploading...' : 'Submit' }}
+        </button>
       </div>
     </div>
   </div>
@@ -36,220 +56,206 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import Footer from '@/layout/Footer.vue'
-import Header from '@/layout/Header.vue'
 import ApiNetwork from '@/network/apiNetwork.ts'
 
 export default defineComponent({
-  firstname: 'NicImages',
-  components: { Header, Footer },
+  name: 'NicImages',
   data() {
     return {
-      images: {
+      referenceNumber: '',
+      files: {
         front: null as File | null,
-        rear: null as File | null,
+        back: null as File | null,
         selfie: null as File | null,
       },
-      imagesBase64: {
+      preview: {
         front: null as string | null,
-        rear: null as string | null,
+        back: null as string | null,
         selfie: null as string | null,
       },
-      imageLabels: {
-        front: 'NIC Front',
-        rear: 'NIC Rear',
-        selfie: 'Selfie',
-      },
+      loading: false
     }
   },
   methods: {
-    handleFileChange(type: 'front' | 'rear' | 'selfie', event: Event) {
-      const target = event.target as HTMLInputElement
-      if (target.files?.length) {
-        const file = target.files[0]
-        this.images[type] = file
-
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const img = new Image()
-          img.onload = () => {
-            const maxSize = 200
-            let width = img.width
-            let height = img.height
-
-            if (width > height) {
-              if (width > maxSize) {
-                height *= maxSize / width
-                width = maxSize
-              }
-            } else {
-              if (height > maxSize) {
-                width *= maxSize / height
-                height = maxSize
-              }
-            }
-
-            const canvas = document.createElement('canvas')
-            canvas.width = width
-            canvas.height = height
-            const ctx = canvas.getContext('2d')
-            ctx?.clearRect(0, 0, width, height)
-            ctx?.drawImage(img, 0, 0, width, height)
-
-            const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7)
-            this.imagesBase64[type] = resizedBase64
-          }
-          img.src = e.target?.result as string
-        }
-        reader.readAsDataURL(file)
+    handleFileChange(type: 'front'|'back'|'selfie', event: Event) {
+      const input = event.target as HTMLInputElement
+      if (input.files?.length) {
+        const file = input.files[0]
+        this.files[type] = file
+        this.createPreview(type, file)
       }
     },
-    submitImages() {
-      if (!this.imagesBase64.front || !this.imagesBase64.rear || !this.imagesBase64.selfie) {
+
+    createPreview(type: 'front'|'back'|'selfie', file: File) {
+      const reader = new FileReader()
+      reader.onload = (e) => this.preview[type] = e.target?.result as string
+      reader.readAsDataURL(file)
+    },
+
+    async submitImages() {
+      if (!this.referenceNumber) {
+        alert('Please enter a reference number')
+        return
+      }
+
+      if (!this.allFilesUploaded()) {
         alert('Please upload all three images.')
         return
       }
 
-      const payload = {
-        front: this.imagesBase64.front,
-        rear: this.imagesBase64.rear,
-        selfie: this.imagesBase64.selfie,
-      }
+      this.loading = true
 
-      ApiNetwork.post('api/UserImage/upload', payload, 'POST', () => {
-        console.log('Payload:', payload)
-        localStorage.setItem('nicImagesData', JSON.stringify(payload));
+      try {
+        const formData = new FormData()
+        formData.append('front', this.files.front!)
+        formData.append('back', this.files.back!)
+        formData.append('selfie', this.files.selfie!)
+        formData.append('referenceNumber', this.referenceNumber)
+
+
+
+        ApiNetwork.post("/api/UserImage/upload", FormData, '', function(response: any){
+          console.log("uploaded",response);
+        })
+
+
+
+
+
+        localStorage.setItem('nicImagesData', JSON.stringify({
+          ...this.preview,
+          referenceNumber: this.referenceNumber
+        }))
         this.$router.push('/preview')
-      })
+      } catch (error) {
+        alert('Upload failed. Please try again.')
+        console.error('Upload error:', error)
+      } finally {
+        this.loading = false
+      }
     },
-  },
+
+    allFilesUploaded(): boolean {
+      return !!this.files.front && !!this.files.back && !!this.files.selfie
+    }
+  }
 })
 </script>
 
 <style scoped>
 .nic-page {
-  width: 100vw;
-  min-height: 100vh;
-  background: #f8f9fa;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .form-section {
-  padding: 60px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.form-title {
-  font-size: 34px;
-  font-weight: bold;
+h2 {
+  text-align: center;
   margin-bottom: 30px;
-  color: #070606;
+  color: #333;
 }
 
 .upload-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 50px;
-  width: 200%;
-  max-width: 600px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
 .upload-box {
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px dashed #ddd;
   padding: 20px;
+  border-radius: 8px;
   text-align: center;
-  position: relative;
 }
 
-.text-above-image {
-  font-weight: 600;
-  margin-bottom: 10px;
-  font-size: 16px;
+.upload-box h3 {
+  margin-top: 0;
+  color: #444;
 }
 
 .image-preview {
-  height: 150px;
-  width: 100%;
-  border: 2px dashed #ccc;
-  border-radius: 10px;
+  height: 200px;
+  margin: 15px 0;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+  border-radius: 5px;
   overflow: hidden;
-  margin-bottom: 15px;
 }
 
 .image-preview img {
-  max-height: 100%;
   max-width: 100%;
-  object-fit: cover;
-  border-radius: 10px;
+  max-height: 100%;
+  object-fit: contain;
 }
 
-.placeholder-icon {
-  max-height: 60px;
-  opacity: 0.4;
+.placeholder {
+  color: #999;
 }
 
-.upload-label input[type='file'] {
-  display: none;
-}
-
-.round-button {
-  background-color: #ff0000;
-  color: white;
-  padding: 10px 15px;
-  border-radius: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.round-button:hover {
-  background-color: #ffffff;
-}
-
-.button-group {
-  display: flex;
-  gap: 20px;
-  margin-top: 30px;
+input[type="file"] {
   width: 100%;
-  max-width: 300px;
+  margin-top: 10px;
 }
 
-.back-btn,
-.submit-button {
-  flex: 1;
-  padding: 12px 0;
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+button {
+  padding: 14px 28px;
   font-size: 16px;
   border-radius: 8px;
-  font-weight: bold;
   cursor: pointer;
-  text-align: center;
-}
-
-.back-btn {
-  background-color: white;
-  color: #070606;
-  border: 2px solid #070606;
-}
-
-.submit-button {
-  background-color: #ff0000;
-  color: white;
   border: none;
+  transition: background-color 0.3s ease;
 }
 
-.submit-button:hover {
-  background-color: #cc0000;
+button:first-child {
+  background-color: #ccc;
+  color: #333;
+}
+
+button:last-child {
+  background-color: #ff4d4d;
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reference-input {
+  margin-bottom: 25px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.reference-input label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #444;
+}
+
+.reference-input input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
 }
 </style>
