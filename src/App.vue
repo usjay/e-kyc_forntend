@@ -14,7 +14,7 @@ import Header from './layout/Header.vue';
 import Footer from './layout/Footer.vue';
 
 export default defineComponent({
-  firstname: 'App',
+  name: 'App',
   components: { Header, Footer }
 });
 </script>

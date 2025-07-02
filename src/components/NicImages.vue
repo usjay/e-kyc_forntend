@@ -19,10 +19,9 @@
           <h3>NIC Front</h3>
           <div class="image-preview">
             <img v-if="preview.front" :src="preview.front" alt="NIC Front Preview">
-
             <div v-else class="placeholder">No image selected</div>
           </div>
-          <input type="file" @change="handleFileChange('front', $event)" accept="image/">
+          <input type="file" @change="handleFileChange('front', $event)" accept="image/*">
         </div>
 
         <div class="upload-box">
@@ -46,7 +45,7 @@
 
       <div class="buttons">
         <button @click="$router.back()" :disabled="loading">Back</button>
-        <button @click="submitImages" :disabled="loading || !referenceNumber">
+        <button @click="submitImages" :disabled="loading || !referenceNumber || !allFilesUploaded()">
           {{ loading ? 'Uploading...' : 'Submit' }}
         </button>
       </div>
@@ -55,8 +54,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
-import ApiNetwork from '@/network/apiNetwork.ts'
+import { defineComponent } from 'vue';
+import ApiNetwork from '@/network/apiNetwork.ts';
+import { UserImageStore } from '@/stores/UserImageStore.ts'
 
 export default defineComponent({
   name: 'NicImages',
@@ -73,73 +73,67 @@ export default defineComponent({
         back: null as string | null,
         selfie: null as string | null,
       },
-      loading: false
-    }
+      // loading: false,
+    };
   },
   methods: {
     handleFileChange(type: 'front'|'back'|'selfie', event: Event) {
-      const input = event.target as HTMLInputElement
+      const input = event.target as HTMLInputElement;
       if (input.files?.length) {
-        const file = input.files[0]
-        this.files[type] = file
-        this.createPreview(type, file)
+        const file = input.files[0];
+        this.files[type] = file;
+        this.createPreview(type, file);
       }
     },
-
     createPreview(type: 'front'|'back'|'selfie', file: File) {
-      const reader = new FileReader()
-      reader.onload = (e) => this.preview[type] = e.target?.result as string
-      reader.readAsDataURL(file)
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.preview[type] = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
     },
-
-    async submitImages() {
-      if (!this.referenceNumber) {
-        alert('Please enter a reference number')
-        return
-      }
-
-      if (!this.allFilesUploaded()) {
-        alert('Please upload all three images.')
-        return
-      }
-
-      this.loading = true
-
-      try {
-        const formData = new FormData()
-        formData.append('front', this.files.front!)
-        formData.append('back', this.files.back!)
-        formData.append('selfie', this.files.selfie!)
-        formData.append('referenceNumber', this.referenceNumber)
-
-
-
-        ApiNetwork.post("/api/UserImage/upload", FormData, '', function(response: any){
-          console.log("uploaded",response);
-        })
-
-
-
-
-
-        localStorage.setItem('nicImagesData', JSON.stringify({
-          ...this.preview,
-          referenceNumber: this.referenceNumber
-        }))
-        this.$router.push('/preview')
-      } catch (error) {
-        alert('Upload failed. Please try again.')
-        console.error('Upload error:', error)
-      } finally {
-        this.loading = false
-      }
-    },
-
     allFilesUploaded(): boolean {
-      return !!this.files.front && !!this.files.back && !!this.files.selfie
+      return !!this.files.front && !!this.files.back && !!this.files.selfie;
+    },
+    submitImages() {
+      if (!this.referenceNumber) {
+        alert('Please enter your NIC number.');
+        return;
+      }
+      if (!this.allFilesUploaded()) {
+        alert('Please select all three images.');
+        return;
+      }
+
+      this.loading = true;
+      const formData = new FormData();
+      formData.append('front', this.files.front!);
+      formData.append('back', this.files.back!);
+      formData.append('selfie', this.files.selfie!);
+      formData.append('referenceNumber', this.referenceNumber);
+
+      const imagestore= UserImageStore();
+        imagestore.setImage({
+
+        referenceNumber:this.referenceNumber,
+        front :this.files.front,
+        back: this.files.back,
+        selfie : this.files.selfie,
+
+
+      });
+
+      ApiNetwork.postform('api/UserImage/upload', formData, 'POST', 'multipart/form-data', (response) => {
+        // console.log("IMAGE SUBMITION SUCCESSFULL :", response);
+        console.log('Stored in Pinia:', imagestore.$state);
+          this.$router.push('/preview');
+
+
+      });
     }
+
   }
-})
+});
 </script>
 
 <style scoped>

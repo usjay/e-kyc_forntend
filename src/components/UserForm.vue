@@ -1,9 +1,12 @@
 <template>
   <div class="form-page">
     <h2 class="form-title">User Form</h2>
+
+    <button @click="startTour" class="guide-btn">Start Form Guide</button>
+
     <form @submit.prevent="submitForm">
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" id="step-title">
           <label for="title">Title<span class="required">*</span></label>
           <select v-model="user.title" id="title" @change="clearError('title')">
             <option value="">Select</option>
@@ -14,13 +17,13 @@
           <span class="error" v-if="errors.title">{{ errors.title }}</span>
         </div>
 
-        <div class="form-group">
-          <label for="name">First Name<span class="required">*</span></label>
-          <input v-model="user.firstname" type="text" id="name" @input="clearError('name')" />
-          <span class="error" v-if="errors.firstname">{{ errors.firstname }}</span>
+        <div class="form-group" id="step-firstname">
+          <label for="firstName">First Name<span class="required">*</span></label>
+          <input v-model="user.firstName" type="text" id="firstName" @input="clearError('firstName')" />
+          <span class="error" v-if="errors.firstName">{{ errors.firstName }}</span>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="step-lastname">
           <label for="lastName">Last Name<span class="required">*</span></label>
           <input v-model="user.lastName" type="text" id="lastName" @input="clearError('lastName')" />
           <span class="error" v-if="errors.lastName">{{ errors.lastName }}</span>
@@ -28,13 +31,13 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label for="mobile">Mobile Number<span class="required">*</span></label>
-          <input v-model="user.mobile" type="tel" id="mobile" @input="clearError('mobile')" />
-          <span class="error" v-if="errors.mobile">{{ errors.mobile }}</span>
+        <div class="form-group" id="step-mobile">
+          <label for="mobileNumber">Mobile Number<span class="required">*</span></label>
+          <input v-model="user.mobileNumber" type="tel" id="mobileNumber" @input="clearError('mobileNumber')" />
+          <span class="error" v-if="errors.mobileNumber">{{ errors.mobileNumber }}</span>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="step-email">
           <label for="email">Email<span class="required">*</span></label>
           <input v-model="user.email" type="email" id="email" @input="clearError('email')" />
           <span class="error" v-if="errors.email">{{ errors.email }}</span>
@@ -42,13 +45,13 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" id="step-nationality">
           <label for="nationality">Nationality<span class="required">*</span></label>
           <input v-model="user.nationality" type="text" id="nationality" @input="clearError('nationality')" />
           <span class="error" v-if="errors.nationality">{{ errors.nationality }}</span>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="step-address">
           <label for="address">Address<span class="required">*</span></label>
           <input v-model="user.address" type="text" id="address" @input="clearError('address')" />
           <span class="error" v-if="errors.address">{{ errors.address }}</span>
@@ -65,26 +68,29 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 import ApiNetwork from '@/network/apiNetwork.ts';
+import { UserDetailsStore } from '@/stores/UserDetailsStore.ts';
 
 export default defineComponent({
-  firstname: 'UserForm',
+  name: 'UserForm',
   data() {
     return {
       user: {
         title: '',
-        firstname: '',
+        firstName: '',
         lastName: '',
-        mobile: '',
+        mobileNumber: '',
         email: '',
         nationality: '',
         address: ''
       },
       errors: {
         title: '',
-        firstname: '',
+        firstName: '',
         lastName: '',
-        mobile: '',
+        mobileNumber: '',
         email: '',
         nationality: '',
         address: ''
@@ -95,13 +101,80 @@ export default defineComponent({
     clearError(field: string) {
       this.errors[field] = '';
     },
+    startTour() {
+      const driverObj = driver({
+        showProgress: true,
+        allowClose: true,
+        steps: [
+          {
+            element: '#step-title',
+            popover: {
+              title: 'Select Title',
+              description: 'Choose your proper title here.',
+              side: 'right'
+            }
+          },
+          {
+            element: '#step-firstname',
+            popover: {
+              title: 'Enter First Name',
+              description: 'Provide your first name.',
+              side: 'bottom'
+            }
+          },
+          {
+            element: '#step-lastname',
+            popover: {
+              title: 'Enter Last Name',
+              description: 'Provide your last name.',
+              side: 'bottom'
+            }
+          },
+          {
+            element: '#step-mobile',
+            popover: {
+              title: 'Mobile Number',
+              description: 'Enter a valid 10-digit phone number.',
+              side: 'bottom'
+            }
+          },
+          {
+            element: '#step-email',
+            popover: {
+              title: 'Email Address',
+              description: 'Your email must be valid and active.',
+              side: 'bottom'
+            }
+          },
+          {
+            element: '#step-nationality',
+            popover: {
+              title: 'Nationality',
+              description: 'Mention your country or nationality.',
+              side: 'bottom'
+            }
+          },
+          {
+            element: '#step-address',
+            popover: {
+              title: 'Home Address',
+              description: 'Your current residence or address.',
+              side: 'bottom'
+            }
+          }
+        ]
+      });
+
+      driverObj.drive();
+    },
     validateForm() {
       let valid = true;
+
       this.errors = {
         title: '',
-        firstname: '',
+        firstName: '',
         lastName: '',
-        mobile: '',
+        mobileNumber: '',
         email: '',
         nationality: '',
         address: ''
@@ -111,8 +184,8 @@ export default defineComponent({
         this.errors.title = 'Title is required';
         valid = false;
       }
-      if (!this.user.firstname.trim()) {
-        this.errors.firstname = 'First name is required';
+      if (!this.user.firstName.trim()) {
+        this.errors.firstName = 'First name is required';
         valid = false;
       }
       if (!this.user.lastName.trim()) {
@@ -120,8 +193,8 @@ export default defineComponent({
         valid = false;
       }
       const phoneRegex = /^[0-9]{10}$/;
-      if (!phoneRegex.test(this.user.mobile)) {
-        this.errors.mobile = 'Enter a valid 10-digit mobile number';
+      if (!phoneRegex.test(this.user.mobileNumber)) {
+        this.errors.mobileNumber = 'Enter a valid 10-digit mobile number';
         valid = false;
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -143,18 +216,29 @@ export default defineComponent({
     submitForm() {
       if (this.validateForm()) {
         const payload = {
-          first_name: this.user.firstname,
+          first_name: this.user.firstName,
           last_name: this.user.lastName,
           address: this.user.address,
           email: this.user.email,
-          contact_number: this.user.mobile,
+          contact_number: this.user.mobileNumber
         };
 
-        ApiNetwork.post("api/Student/save", payload, 'POST', (response: any) => {
-          console.log("Payload:", payload);
-          localStorage.setItem('userFormData', JSON.stringify(this.user));
-          this.$router.push('/nicimage_test');
+        const userDetails = UserDetailsStore();
+        userDetails.storeformdata({
+          title: this.user.title,
+          firstName: this.user.firstName,
+          lastName: this.user.lastName,
+          email: this.user.email,
+          mobileNumber: this.user.mobileNumber,
+          nationality: this.user.nationality,
+          address: this.user.address
+        });
 
+        console.log('Stored in Pinia:', userDetails.$state);
+
+        ApiNetwork.postform("api/Student/save", payload, 'POST', 'application/json', (response: any) => {
+          console.log("SUCCESSFUL SUBMISSION:", response);
+          this.$router.push('/nicimage_test');
         });
       }
     }
@@ -163,6 +247,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
+
 .form-page {
   width: 100vw;
   min-height: 100vh;
@@ -173,6 +258,20 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   font-family: sans-serif;
+}
+
+.guide-btn {
+  background-color: #ff0000;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.guide-btn:hover {
+  background-color: #ffffff;
 }
 
 form {

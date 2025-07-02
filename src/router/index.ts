@@ -5,46 +5,64 @@ import LoginForm from '@/components/LoginForm.vue'
 import NicImages from '@/components/NicImages.vue'
 import PreviewPage from '@/components/PreviewPage.vue'
 import SubmissionSuccess from '@/components/SubmissionSuccess.vue';
+ import UserTable from '@/components/UserTable.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/homee',
-      firstname: 'home2',
+      name: 'home2',
       component: HomeView,
     },
     {
       path: '/',
-      firstname: 'login',
+      name: 'login',
       component: LoginForm,
     },
     {
       path: '/nicimage_test',
-      firstname: 'nicupload',
+      name: 'nicupload',
       component: NicImages,
     },
     {
       path: '/userform',
-      firstname: 'UserForm',
+      name: 'UserForm',
       component: UserForm,
     },
     {
       path: '/preview',
-      firstname: 'preview',
+      name: 'preview',
       component: PreviewPage,
     },
     {
       path: '/about',
-      firstname: 'about',
+      name: 'about',
       component: () => import('../views/AboutView.vue'),
     },
 
     {
       path: '/thank-you',
-      firstname: 'SubmissionSuccess',
+      name: 'SubmissionSuccess',
       component: SubmissionSuccess,
     },
+    {
+      path: '/users',
+      name: 'UserTable',
+      component: UserTable,
+    },
+    {
+      path: '/students/:id',
+      name: 'StudentPreview',
+      component: () => import('@/components/StudentPreview.vue')
+    }
+
+//     {
+//       path: '/students/:id',
+//       name: 'StudentPreview',
+//       component: () => import('@/views/StudentPreview.vue')
+//     }
+// ,
 
   ],
 })

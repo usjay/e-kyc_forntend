@@ -68,25 +68,11 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-
-interface User {
-  title: string;
-  firstname: string;
-  lastName: string;
-  address: string;
-  mobile: string;
-  email: string;
-  nationality: string;
-}
-
-interface Images {
-  front: string | null;
-  back: string | null;
-  selfie: string | null;
-}
+import { UserDetailsStore } from '@/stores/UserDetailsStore';
+// import { useUserImageStore } from '@/stores/UserImageStore';
 
 export default defineComponent({
-  firstname: 'PreviewPage',
+  name: 'PreviewPage',
   data() {
     return {
       user: {
@@ -97,27 +83,30 @@ export default defineComponent({
         mobile: '',
         email: '',
         nationality: '',
-      } as User,
+      },
       images: {
         front: null,
         back: null,
         selfie: null,
-      } as Images,
+      },
     };
   },
   created() {
-    try {
-      const userData = localStorage.getItem('userFormData');
-      if (userData) {
-        this.user = JSON.parse(userData);
-      }
-      const nicImagesData = localStorage.getItem('nicImagesData');
-      if (nicImagesData) {
-        this.images = JSON.parse(nicImagesData);
-      }
-    } catch (error) {
-      console.error('Error parsing localStorage data', error);
-    }
+    // const userDetails = UserDetailsStore();
+    // const userImages = useUserImageStore();
+
+    // this.user.title = userDetails.title;
+    // this.user.firstname = userDetails.initialName;
+    // this.user.lastName = userDetails.lastName;
+    // this.user.email = userDetails.email;
+    // this.user.mobile = userDetails.mobileNumber;
+    // this.user.nationality = userDetails.nationality;
+    // this.user.address = userDetails.address;
+    //
+    // this.images.front = userImages.frontpath ? URL.createObjectURL(userImages.frontpath) : null;
+    // this.images.back = userImages.backpath ? URL.createObjectURL(userImages.backpath) : null;
+    // this.images.selfie = userImages.selfiepath ? URL.createObjectURL(userImages.selfiepath) : null;
+
   },
   methods: {
     finalSubmit() {
@@ -127,9 +116,7 @@ export default defineComponent({
       };
 
       console.log('Final data to submit:', finalData);
-
       alert('Data submitted successfully!');
-      localStorage.clear();
       this.$router.push('/thank-you');
     },
   },
